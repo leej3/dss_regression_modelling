@@ -24,7 +24,7 @@ You work for Motor Trend, a magazine about the automobile industry. Looking at a
     “Is an automatic or manual transmission better for MPG”
     "Quantify the MPG difference between automatic and manual transmissions"
     
-```{r, results='hide'}
+```{r, results='hide',message=FALSE, echo=FALSE, warning=FALSE}
 library(dplyr)
 library(ggplot2)
 library(car)
@@ -33,35 +33,32 @@ data(mtcars)
 mtcars$am <- factor(as.character(mtcars$am),labels = c("Automatic","Manual"))
 ```
 
-The purpose of this analysis is to assess the effect of transmission type on the MPG of various cars. 
+The purpose of this analysis is to assess the effect of transmission type on the MPG of various cars. Without controlling for any other variables manual transmissions are typically more fuel efficent and getting more miles per gallon. Using tranmission type as a predictor for the mpg variable (see below) the mean mpg of automatic cars is 17.15 with a standard error of 1.1 and the average manual transmission is 7.2 mpg higher with a standard error of 1.8. A hypothesis test for the difference between the two categories yields a p-value < 0.001 suggesting that the transmission type strongly affects mpg; however, this description does not take into account the other confounding variables included in this dataset.
 
-A basic violin plot indicates that without controlling for any other variables manual transmissions are typically more fuel efficent and getting more miles per gallon:
-```{r}
-ggplot(mtcars, aes(am,mpg)) +geom_violin() +geom_point() + xlab("Transmission Type")
-
-```
-A clear effect can be observed in the above plot. 
 ```{r}
 summary(lm(mpg~ am,data = mtcars))$coef
 ```
-Using tranmission type as predictors for the mpg variable we see that the mean mpg of automatic cars is 17.15 with a standard error of 1.1 and the average manual transmission is 7.2 mpg higher with a standard error of 1.8. A hypothesis test for the difference between the two categories yields a p-value < 0.001 suggesting that the transmission type strongly affects mpg. But is this the full story? We assess whether there may be confounding variables that are influencing this observation. A model using all other variables as predictors suffers from variance inflation but indicates some of the variables that may be useful in predicting the mpg of the various cars. Indeed correlation plots using these variables demonstrate extensive correlation between many of these variables 
+
+ A model using all other variables as predictors suffers from variance inflation but indicates some of the variables that may be useful in predicting the mpg of the various cars. Indeed correlation plots using these variables demonstrate extensive correlation between many of these variables 
 
 ```{r}
 fit_all <- lm(data = mtcars, mpg~ .)
 summary(fit_all)
 vif(fit_all)
 ```
-Weight is inversely correlated with mpg and captures 75% of the variation in this variable. A scatterplot of these two variables with the superimposed regression line suggests that a linear relationship may not be the most accurate method of relating these two variables.
+Weight is inversely correlated with mpg and captures 75\% of the variation in this variable. A scatterplot of these two variables with the superimposed regression line suggests that a linear relationship may not be the most accurate method of relating these two variables.
+
 ```{r}
 fit_wt <- lm(data = mtcars, mpg ~ wt)
 summary(fit_wt)[c( "coefficients","r.squared")]
 ggplot(mtcars, aes(mpg,x = wt)) + geom_point() + geom_smooth(method = "lm")   
 ```
+
 This observation is supported by
+
 ```{r}
 par(mfrow = c(2, 2))
 plot(fit_wt)
-
 ```
 
 ```{r,ref.label= "predictors that capture much variance"}
@@ -76,11 +73,6 @@ vif(fit_all)
 
 A number of details of the engine (number of carburettors, number of cylinders and displacement ) are highly correlated with the power of the engine (see supplimentary figure 1). To simplify our analysis we only used the engine displacement as a measure of power fir each car. This variable is inversely correlated with mpg. A number of the other measures also showed correlations with the vehicle weight showing the strongest correlation:
  
-```{r, cache=TRUE}
-ggpairs(select(mtcars, mpg,disp, drat,wt,qsec,vs,gear))
-ggpairs(select(mtcars, mpg,disp, drat,wt,qsec,vs,gear,am))
-```
-
 
 In order to attain a parsimonious model we assessed whether transmission type still affected mpg when controlling for just weight and engine displacement:
 ```{r}
@@ -89,17 +81,14 @@ summary(fit)
 vif(fit)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
 #Appendix
-can only include figures
-```{r, cache = TRUE}
+
+```{r, cache = TRUE, message=FALSE}
 ggpairs(select(mtcars,mpg,cyl,disp,hp,carb,am), title = "Supp. Figure 1: Measures of engine output")
 
 ggpairs(select(mtcars,wt,cyl,disp,hp,carb), title = "Supp. Figure 2: Vehicle weight")
 
 ggpairs(select(mtcars, mpg, wt, hp, qsec,  am), title = "Supp. Figure 3")
-
 
 ```
 
