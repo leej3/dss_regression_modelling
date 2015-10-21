@@ -4,26 +4,28 @@ author: "John Lee"
 date: "20 October 2015"
 output: pdf_document
 ---
+```{r, eval =FALSE, echo=FALSE}
 criteria:
-Did the student interpret the coefficients correctly
-Did the student do some exploratory data analysis
-Did the student fit multiple models and detail their strategy for model selection
-Did the student answer the question or detail why the question was unanswerable
-Did the student do a residual plot and some diagnostics
-Did the student quantify the uncertainty in their conclusions and or perform an inference correctly
-Was the report brief
-Did the report include an executive summary
-Was the report done in rmd
+Did the student interpret the coefficients correctly... yes
+Did the student do some exploratory data analysis... yes
+Did the student fit multiple models and detail their strategy for model selection... yes
+Did the student answer the question or detail why the question was unanswerable... yes
+Did the student do a residual plot and some diagnostics... yes
+Did the student quantify the uncertainty in their conclusions and or perform an inference correctly... yes
+Was the report brief... yes
+Did the report include an executive summary...yes
+Was the report done in rmd... yes
+```
+#Summary
+The objective of this report is to assess the effect of automatic or manual transmission types (am) on the fuel efficiency of the motor vehicles measured in miles per gallon (mpg) in a dataset extracted from the Motor Trend US magazine (1974). While a prelimanry comparison of the two transmission types suggests that manual transmissions are substantially more efficient, this analysis is confounded by other variables in the dataset. Car weight and gross horsepower intuitively influences the fuel efficiency of a car. While some outliers exist in a model using these two variables as predictors of mpg, the model is useful in that it captures 83% of the variance of the mpg variable in the dataset. The am variable is of little use as a predictor when added to this model; however, the conclusion that tranmission type has little effect on fuel economy is rendered ambiguous by the fact that the transmission type is strongly correlated with the cars' weights.
 
-
-#Executive summary paragraph
-
+```{r, eval=FALSE, echo=FALSE}
 #main report (two pages only)
 You work for Motor Trend, a magazine about the automobile industry. Looking at a data set of a collection of cars, they are interested in exploring the relationship between a set of variables and miles per gallon (MPG) (outcome). They are particularly interested in the following two questions:
 
     “Is an automatic or manual transmission better for MPG”
     "Quantify the MPG difference between automatic and manual transmissions"
-    
+```
 ```{r, results='hide',message=FALSE, echo=FALSE, warning=FALSE}
 library(dplyr)
 library(ggplot2)
@@ -31,73 +33,74 @@ library(car)
 library(GGally)
 data(mtcars)
 mtcars$am <- factor(as.character(mtcars$am),labels = c("Automatic","Manual"))
+mtcars$names <- rownames(mtcars)
 ```
-
-The purpose of this analysis is to assess the effect of transmission type on the MPG of various cars. Without controlling for any other variables manual transmissions are typically more fuel efficent and getting more miles per gallon. Using tranmission type as a predictor for the mpg variable (see below) the mean mpg of automatic cars is 17.15 with a standard error of 1.1 and the average manual transmission is 7.2 mpg higher with a standard error of 1.8. A hypothesis test for the difference between the two categories yields a p-value < 0.001 suggesting that the transmission type strongly affects mpg; however, this description does not take into account the other confounding variables included in this dataset.
+# Report
+The purpose of this analysis is to assess the effect of transmission type on the MPG of various cars. Without controlling for any other variables manual transmissions are typically more fuel efficent getting more miles per gallon (mpg). Using tranmission type as a predictor for the mpg variable (see below) the mean mpg of automatic cars is 17.15 with a standard error of 1.1 and the mean manual transmission is 7.2 mpg higher with a standard error of 1.8. A hypothesis test for the difference between the two categories yields a p-value < 0.001 suggesting that the transmission type (am) strongly affects mpg; however, this description does not take into account the other confounding variables included in this dataset. Furthermore, using this model to predict mpg, only 35% of its variance is accounted for suggesting that other variables are important in understanding the fuel efficiency of any given car.
 
 ```{r}
-summary(lm(mpg~ am,data = mtcars))$coef
+summary(lm(mpg~ am,data = mtcars))[c( "coefficients","r.squared")]
 ```
 
- A model using all other variables as predictors suffers from variance inflation but indicates some of the variables that may be useful in predicting the mpg of the various cars. Indeed correlation plots using these variables demonstrate extensive correlation between many of these variables 
+ A model using all other variables as predictors suffers from variance inflation and so a more parsimonious model was chosen. A matrix of plots pairing each of the variables demonstrates extensive correlation between many of them (see supplimentary figures 1-3). Of these the car weight (wt) shows a strong correlation with mpg. This makes sense as more fuel would be used to move heavier cars. Using wt as a regressor to predict mpg captures 75% of the variation in the dataset. An additional variable which shows a strong correlation with mpg is the gross horsepower of the car (hp). Once again this is intuitive as a more powerful car will use more fuel. A linear model including these two predictor variables, detailed below, captures almost 83% of the variance in the mpg variable.
+```{r}
+lm_fit <- lm(data = mtcars, mpg ~ wt+ hp)
+summary(lm_fit)[c( "coefficients","r.squared")]
+vif(lm_fit)
+```
+The above model states that for every 1000lb change in the weight of a car the average decrease in the fuel efficiency of the car is 3.9 mpg (with a standard error of 0.63). Similarly for every unit increase in hp the fuel efficiency decreases by 0.03mpg (with a standard error of 0.01). The null hypotheses that wt and hp are not linearly related to mpg are rejected with p$<$ 0.001 and p$<$ 0.01 respectively. Power is of course correlated to a degree with the weight of the car (see supplimentary figure 2) as heavier cars will need more powerful engines but power can also independently describe cars that are not be as heavy that use their power for speed rather than carrying heavier loads (the Maserati Bora and the Ford Pantera L being good examples, see Supplimentary Figure 4). The variance inflation factors suggests that the collinearity is not high, with the standard error of the variable coefficients only 1.3 times higher than if wt and hp were uncorrelated.
+
+While model including wt and hp captures much of the variance in mpg there are some problems that suggest it may not be useful to answer our question. A plot of the residuals (see Supplimentary Figure 3) reveals that some outliers exist in the model. Furthermore the residual plot indicate that some deviation from linearity exists in the model. This suggests that a linear model may not best describe the data or at least that the variables require scaling using an exponential function. More worringly, a plot using the variables hp,wt, am and mpg suggests that an automatic transmission was typically used in heavier cars. The fact that the two transmission types are not well distributed across all car weights makes it impossible to unambiguously compare the effect of transmission type on mpg.
+
+With the above caveats, an attempt at calculating the effect of transmission type on mpg can be made by including it in the model. Using nested liklihood ratios for model selection suggests that the model is not improved by adding the am term (p = 0.14):
 
 ```{r}
-fit_all <- lm(data = mtcars, mpg~ .)
-summary(fit_all)
-vif(fit_all)
+fit_with_transmission_type <- update(lm_fit,mpg ~ wt + hp + am)
+anova(lm_fit, fit_with_transmission_type)
 ```
-Weight is inversely correlated with mpg and captures 75\% of the variation in this variable. A scatterplot of these two variables with the superimposed regression line suggests that a linear relationship may not be the most accurate method of relating these two variables.
-
-```{r}
-fit_wt <- lm(data = mtcars, mpg ~ wt)
-summary(fit_wt)[c( "coefficients","r.squared")]
-ggplot(mtcars, aes(mpg,x = wt)) + geom_point() + geom_smooth(method = "lm")   
+```{r,results='hide',echo=FALSE}
+summary_fit <- summary(fit_with_transmission_type)
+vif(fit_with_transmission_type)
 ```
-
-This observation is supported by
-
-```{r}
-par(mfrow = c(2, 2))
-plot(fit_wt)
-```
-
-```{r,ref.label= "predictors that capture much variance"}
-fit_all <- lm(data = mtcars, mpg~ wt + hp + am + qsec)
-summary(fit_all)
-vif(fit_all)
-```
-
-
-
-
-
-A number of details of the engine (number of carburettors, number of cylinders and displacement ) are highly correlated with the power of the engine (see supplimentary figure 1). To simplify our analysis we only used the engine displacement as a measure of power fir each car. This variable is inversely correlated with mpg. A number of the other measures also showed correlations with the vehicle weight showing the strongest correlation:
- 
-
-In order to attain a parsimonious model we assessed whether transmission type still affected mpg when controlling for just weight and engine displacement:
-```{r}
-fit <- lm(mpg~ wt + am, data = mtcars)
-summary(fit)
-vif(fit)
-```
+Using the model the effect of transmission type when accounting for the weight and power of the car is not significantly different from 0 and is calculated to be `r summary_fit$coefficients[4,1]`mpg higher for manual transmissions with a standard error of `r summary_fit$coefficients[4,2]`mpg. With a dataset where transmission types is more evenly distributed across the different weights and horsepowers the effect of transmission type could be more adequately addressed.
 
 #Appendix
 
 ```{r, cache = TRUE, message=FALSE}
-ggpairs(select(mtcars,mpg,cyl,disp,hp,carb,am), title = "Supp. Figure 1: Measures of engine output")
+par(mar= c(rep(1,4)))
+ggpairs(select(mtcars,mpg,wt,hp,cyl,disp,carb,am), title = "Supp. Figure 1: Comparing variables")
+# ggpairs(select(mtcars,wt,cyl,disp,hp,carb), title = "Supp. Figure 2: Vehicle weight")
+ggpairs(select(mtcars, mpg, wt, hp, qsec,drat,am), title = "Supp. Figure 2")
 
-ggpairs(select(mtcars,wt,cyl,disp,hp,carb), title = "Supp. Figure 2: Vehicle weight")
-
-ggpairs(select(mtcars, mpg, wt, hp, qsec,  am), title = "Supp. Figure 3")
 
 ```
 
-```{r}
+```{r, echo=FALSE, cache=TRUE}
+par(mfrow = c(2, 2))
+plot(lm_fit, main = "Diagnostic plots for lm(mpg~ wt + hp)")
+```
+
+```{r, echo=FALSE}
+ggplot(mtcars, aes(wt,hp, color = am, size = mpg)) + geom_point() + geom_text(aes(label=ifelse(wt>4.5|hp>250,as.character(names),''),size = 20), nudge_x = -0.9) + ggtitle("Supp. Figure 4")
+```
+
+
+```{r, echo=FALSE, eval=FALSE}
 fit1 <- lm(data = mtcars, mpg~ disp)
 fit2 <- update(fit1, mpg~ disp + carb)
 fit4 <- update(fit1, mpg~ disp + carb + cyl)
 fit3 <- update(fit1, mpg~ disp + carb + cyl+ hp)
 anova(fit1,fit2,fit3,fit4)
+data("mtcars")
+fit_all <- lm(data = mtcars, mpg~ .)
+summary(fit_all)
+vif(fit_all)
 
+
+fit1 <- lm(data = mtcars, mpg~ wt)
+fit2 <- update(fit1, mpg~ wt + hp)
+# fit3 <- update(fit1, mpg~ wt +am)
+fit3 <- update(fit1,mpg~ wt*hp)
+# fit4 <- update(fit1, mpg~ wt + hp + am)
+anova(fit1,fit2,fit3)
 ```
-
