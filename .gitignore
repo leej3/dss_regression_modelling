@@ -1,7 +1,9 @@
 .Rproj.user
 .Rhistory
 .RData
-regression_analysis_of_mtcars_data.pdf
 week_3.Rproj
 regression_analysis_of_mtcars_data_cache/
 regression_analysis_of_mtcars_data_files/
+train_set.csv
+many_graphs.pdf
+quiz3.R
